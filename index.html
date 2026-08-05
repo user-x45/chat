@@ -8,15 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @keyframes pulse-slow {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.6; }
-        }
-        .animate-pulse-slow {
-            animation: pulse-slow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-    </style>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col justify-between font-sans">
 
@@ -29,7 +20,7 @@
                 </div>
                 <div>
                     <h1 class="text-lg font-bold text-white leading-tight">AdBlock Detector</h1>
-                    <p class="text-xs text-slate-400">広告ブロッカー検知・診断システム</p>
+                    <p class="text-xs text-slate-400">広告ブロッカー検知・高精度判定ツール</p>
                 </div>
             </div>
             <button id="retest-btn" onclick="runDetection()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-lg shadow-indigo-600/20">
@@ -58,7 +49,7 @@
                         広告ブロッカーの状態を診断しています
                     </h2>
                     <p id="status-description" class="text-slate-400 text-sm md:text-base leading-relaxed">
-                        ブラウザの拡張機能やネットワークフィルターによって広告が遮断されているかを複数の手法で検証しています。
+                        要素の非表示判定やトラッキング遮断設定を解析中です。
                     </p>
                 </div>
             </div>
@@ -85,7 +76,7 @@
                         </span>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        広告用CSSクラス名（`ad-banner`, `adsbygoogle`など）を持つダミー要素の非表示・消去ルールを判定。
+                        標準的な広告用CSSクラス・ID要素の自動消去・非表示設定を検証します。
                     </p>
                     <div class="pt-2 border-t border-slate-700/40 flex justify-between items-center text-xs">
                         <span class="text-slate-500">ステータス</span>
@@ -93,19 +84,19 @@
                     </div>
                 </div>
 
-                <!-- 検証2: ネットワーク通信制限 -->
+                <!-- 検証2: JavaScriptトラップ -->
                 <div class="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50 flex flex-col justify-between space-y-3">
                     <div class="flex justify-between items-start">
                         <div class="space-y-1">
                             <span class="text-xs text-indigo-400 font-mono font-semibold">METHOD 02</span>
-                            <h4 class="font-bold text-slate-100 text-base">ネットワーク通信</h4>
+                            <h4 class="font-bold text-slate-100 text-base">スクリプトトラップ</h4>
                         </div>
                         <span id="test2-icon" class="text-slate-500">
                             <i data-lucide="minus-circle" class="w-5 h-5"></i>
                         </span>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        一般的な広告配信サーバ（Google AdSense等）のドメインへのAPIリクエスト遮断を検知。
+                        広告用変数（`canRunAds` / `google_ad_client`等）の初期化阻害を検知します。
                     </p>
                     <div class="pt-2 border-t border-slate-700/40 flex justify-between items-center text-xs">
                         <span class="text-slate-500">ステータス</span>
@@ -113,19 +104,19 @@
                     </div>
                 </div>
 
-                <!-- 検証3: 動的スクリプト読み込み -->
+                <!-- 検証3: インラインスタイル阻害 -->
                 <div class="bg-slate-800/50 rounded-xl p-5 border border-slate-700/50 flex flex-col justify-between space-y-3">
                     <div class="flex justify-between items-start">
                         <div class="space-y-1">
                             <span class="text-xs text-indigo-400 font-mono font-semibold">METHOD 03</span>
-                            <h4 class="font-bold text-slate-100 text-base">スクリプト阻害</h4>
+                            <h4 class="font-bold text-slate-100 text-base">CSS注入阻害</h4>
                         </div>
                         <span id="test3-icon" class="text-slate-500">
                             <i data-lucide="minus-circle" class="w-5 h-5"></i>
                         </span>
                     </div>
                     <p class="text-xs text-slate-400 leading-relaxed">
-                        広告用ファイル名（`ads.js`など）を模擬したスクリプトのブラウザによるブロックを検証。
+                        AdBlock特有の隠蔽スタイル（`display: none !important`）の注入状態を確認します。
                     </p>
                     <div class="pt-2 border-t border-slate-700/40 flex justify-between items-center text-xs">
                         <span class="text-slate-500">ステータス</span>
@@ -136,23 +127,32 @@
             </div>
         </section>
 
-        <!-- 解説セクション -->
+        <!-- トラブルシューティングガイド -->
         <section class="bg-slate-800/30 rounded-2xl p-6 border border-slate-800 space-y-4">
             <h3 class="text-base font-bold text-slate-300 flex items-center gap-2">
-                <i data-lucide="info" class="w-4 h-4 text-indigo-400"></i>
-                広告ブロッカー検知の仕組みについて
+                <i data-lucide="help-circle" class="w-4 h-4 text-indigo-400"></i>
+                「オフにしたのに有効と判定される」場合のチェック項目
             </h3>
-            <div class="text-xs md:text-sm text-slate-400 space-y-2 leading-relaxed">
-                <p>
-                    広告ブロッカー（AdBlock, uBlock Origin, Brave Shieldなど）は、主に以下の2種類のルールに基づいて動作します：
-                </p>
-                <ul class="list-disc pl-5 space-y-1">
-                    <li><strong class="text-slate-200">要素非表示ルール (Cosmetic Filtering):</strong> 広告特有のIDやクラス名（例: <code class="bg-slate-900 px-1 py-0.5 rounded text-indigo-300">.ad-banner</code>）を持つHTML要素を非表示にします。</li>
-                    <li><strong class="text-slate-200">ネットワークブロック (Network Filtering):</strong> 広告サーバーやトラッキングサーバーへの通信をブラウザレベルで中断させます。</li>
-                </ul>
-                <p>
-                    本ツールはこれらのルールを逆手にとり、広告を模擬したダミー要素やダミーリクエストを作成してブラウザの動作を監視することで検知しています。
-                </p>
+            <div class="text-xs md:text-sm text-slate-400 space-y-3 leading-relaxed">
+                <p>拡張機能の広告ブロッカーをオフにしていても検知される場合、以下の機能が影響している可能性があります：</p>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <strong class="text-slate-200 block mb-1">1. ブラウザ標準の保護機能</strong>
+                        Braveの「Shields」、Brave/Safariの「トラッキング防止」、Firefoxの「強化されたトラッキング防止機能」がオンになっている。
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <strong class="text-slate-200 block mb-1">2. セキュリティソフトの機能</strong>
+                        ウイルス対策ソフト（カスペルスキー、ESET、Avast等）のWeb保護機能・バナーブロック機能。
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <strong class="text-slate-200 block mb-1">3. DNS・ネットワークレベルのブロック</strong>
+                        NextDNSやAdGuard DNS、VPNソフトの広告遮断機能（NordVPN Threat Protection等）。
+                    </div>
+                    <div class="bg-slate-900/60 p-3 rounded-lg border border-slate-800">
+                        <strong class="text-slate-200 block mb-1">4. 別の広告ブロック拡張機能</strong>
+                        AdBlockの他に、uBlock OriginやPrivacy Badger、Disconnectなどのプライバシー保護拡張機能が残っている。
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -167,17 +167,14 @@
 
     <!-- 検知スクリプト処理 -->
     <script>
-        // Lucide アイコンの初期化
         lucide.createIcons();
 
-        // テスト結果を保持するオブジェクト
         const results = {
             domTest: false,
-            networkTest: false,
-            scriptTest: false
+            scriptTest: false,
+            styleTest: false
         };
 
-        // UI表示の更新用ユーティリティ
         function updateTestUI(testId, isBlocked, detailText) {
             const iconEl = document.getElementById(`${testId}-icon`);
             const resultEl = document.getElementById(`${testId}-result`);
@@ -188,104 +185,106 @@
                 resultEl.className = 'font-medium text-amber-400';
             } else {
                 iconEl.innerHTML = `<i data-lucide="x-circle" class="w-5 h-5 text-emerald-400"></i>`;
-                resultEl.textContent = detailText || '未検知 (正常に通過)';
+                resultEl.textContent = detailText || '未検知 (正常)';
                 resultEl.className = 'font-medium text-emerald-400';
             }
             lucide.createIcons();
         }
 
-        // 1. DOM要素ベースの検知 (Cosmetic Filtering Check)
+        // 1. DOM要素の非表示チェック (最も確実なCosmetic Filter検知)
         function checkDOMFiltering() {
             return new Promise((resolve) => {
-                // 広告ブロッカーがよく狙う標準的な要素・クラスを作成
                 const fakeAd = document.createElement('div');
+                fakeAd.className = 'adsbygoogle ad-unit ad-zone banner-ad pub_300x250';
+                fakeAd.style.cssText = 'width: 300px; height: 250px; position: absolute; left: -9999px; top: -9999px;';
+                fakeAd.id = 'ad-detector-element';
+                
+                // ダミーテキストを挿入
                 fakeAd.innerHTML = '&nbsp;';
-                fakeAd.className = 'adsbygoogle ad-unit ad-zone ad-space banner-ad pub_300x250';
-                fakeAd.style.cssText = 'width: 1px !important; height: 1px !important; position: absolute !important; left: -9999px !important; top: -9999px !important;';
-                fakeAd.setAttribute('id', 'ad-element-test');
 
                 document.body.appendChild(fakeAd);
 
-                // 少し待って非表示にされたか、削除されたか判定
                 setTimeout(() => {
+                    const style = window.getComputedStyle(fakeAd);
                     const isBlocked = 
                         fakeAd.offsetParent === null || 
                         fakeAd.offsetHeight === 0 || 
                         fakeAd.offsetWidth === 0 ||
-                        fakeAd.clientHeight === 0 ||
-                        window.getComputedStyle(fakeAd).getPropertyValue('display') === 'none' ||
-                        window.getComputedStyle(fakeAd).getPropertyValue('visibility') === 'hidden';
+                        style.display === 'none' ||
+                        style.visibility === 'hidden' ||
+                        style.opacity === '0';
 
-                    // クリーンアップ
                     if (fakeAd.parentNode) {
                         fakeAd.parentNode.removeChild(fakeAd);
                     }
 
                     results.domTest = isBlocked;
-                    updateTestUI('test1', isBlocked, isBlocked ? 'DOMがブロックされました' : '通常通り表示可能');
+                    updateTestUI('test1', isBlocked, isBlocked ? '要素隠蔽を検知' : '要素表示許可');
                     resolve(isBlocked);
-                }, 150);
+                }, 200);
             });
         }
 
-        // 2. ネットワークリクエストベースの検知 (Network Filtering Check)
-        async function checkNetworkBlocking() {
-            // 定番の広告配信ドメインにリクエストを飛ばして失敗するか検証
-            const targetUrl = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
-
-            try {
-                const response = await fetch(targetUrl, {
-                    method: 'HEAD',
-                    mode: 'no-cors',
-                    cache: 'no-store'
-                });
-                
-                // ブロックされずに通過した場合
-                results.networkTest = false;
-                updateTestUI('test2', false, '通信許可');
-                return false;
-            } catch (error) {
-                // ネットワークエラー（TypeError: Failed to fetch等）＝広告ブロッカーによる遮断
-                results.networkTest = true;
-                updateTestUI('test2', true, '通信が遮断されました');
-                return true;
-            }
-        }
-
-        // 3. 動的アドスクリプト読み込み検知 (Script Execution Check)
-        function checkScriptBlocking() {
+        // 2. インラインスクリプト変数の検証 (外部通信を行わずにスクリプトブロックを検証)
+        function checkScriptTrap() {
             return new Promise((resolve) => {
-                const script = document.createElement('script');
-                script.type = 'text/javascript';
-                // 広告ブロッカーがブロックしやすい命名のダミースクリプトURL
-                script.src = 'https://googleads.g.doubleclick.net/pagead/id';
-                script.async = true;
+                // 仮の広告用変数を定義
+                window.canRunAds = undefined;
 
+                const script = document.createElement('script');
+                // ブラウザ内だけで完結するData URIスクリプト
+                script.src = 'data:text/javascript;base64,d2luZG93LmNhblJ1bkFkcyA9IHRydWU7'; 
+                
                 script.onload = () => {
+                    // スクリプトが正常実行されれば window.canRunAds が true になる
+                    const isBlocked = window.canRunAds !== true;
                     script.remove();
-                    results.scriptTest = false;
-                    updateTestUI('test3', false, 'スクリプト読込成功');
-                    resolve(false);
+                    results.scriptTest = isBlocked;
+                    updateTestUI('test2', isBlocked, isBlocked ? 'スクリプト実行阻害' : 'スクリプト実行成功');
+                    resolve(isBlocked);
                 };
 
                 script.onerror = () => {
                     script.remove();
                     results.scriptTest = true;
-                    updateTestUI('test3', true, 'スクリプトブロック');
+                    updateTestUI('test3', true, 'データURI遮断');
                     resolve(true);
                 };
 
                 document.body.appendChild(script);
 
-                // 2秒経っても反応がない場合はタイムアウトでブロックと判定
                 setTimeout(() => {
-                    if (script.parentNode) {
-                        script.remove();
+                    if (window.canRunAds === undefined) {
+                        if (script.parentNode) script.remove();
                         results.scriptTest = true;
-                        updateTestUI('test3', true, 'タイムアウト(遮断)');
+                        updateTestUI('test2', true, '変数初期化不達');
                         resolve(true);
                     }
-                }, 2000);
+                }, 300);
+            });
+        }
+
+        // 3. AdBlockerが追加するインジェクションCSSの検証
+        function checkCSSInjection() {
+            return new Promise((resolve) => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'ad-banner ad_border ad_box';
+                testDiv.style.cssText = 'width: 10px; height: 10px; position: absolute; left: -9999px;';
+                document.body.appendChild(testDiv);
+
+                setTimeout(() => {
+                    const style = window.getComputedStyle(testDiv);
+                    // 拡張機能がページ全体へ注入した !important スタイルがないか評価
+                    const isBlocked = style.display === 'none' || style.visibility === 'hidden';
+
+                    if (testDiv.parentNode) {
+                        testDiv.parentNode.removeChild(testDiv);
+                    }
+
+                    results.styleTest = isBlocked;
+                    updateTestUI('test3', isBlocked, isBlocked ? 'CSS注入検知' : '正常');
+                    resolve(isBlocked);
+                }, 200);
             });
         }
 
@@ -299,34 +298,31 @@
             const statusTitle = document.getElementById('status-title');
             const statusDesc = document.getElementById('status-description');
 
-            // ボタンアニメーション
             refreshIcon.classList.add('animate-spin');
             retestBtn.disabled = true;
             retestBtn.classList.add('opacity-70', 'cursor-not-allowed');
 
-            // 初期化状態
             statusCard.className = "rounded-2xl p-6 md:p-8 bg-slate-800/80 border border-slate-700/60 shadow-xl transition-all duration-300";
             statusIconContainer.className = "p-5 rounded-2xl bg-slate-700/50 text-slate-400 border border-slate-600/40";
             statusIconContainer.innerHTML = `<i data-lucide="loader-2" class="w-12 h-12 animate-spin"></i>`;
             statusBadge.className = "text-xs px-2.5 py-1 rounded-full bg-slate-700 text-slate-300 font-semibold uppercase tracking-wider";
             statusBadge.textContent = "テスト実行中...";
             statusTitle.textContent = "広告ブロッカーの状態を診断しています";
-            statusDesc.textContent = "ブラウザの拡張機能やネットワークフィルターによって広告が遮断されているかを複数の手法で検証しています。";
+            statusDesc.textContent = "要素の非表示判定やトラッキング遮断設定を解析中です。";
             lucide.createIcons();
 
-            // 各テストの実行
-            const [domBlocked, networkBlocked, scriptBlocked] = await Promise.all([
+            // 外部通信(fetch)を使わずローカルの判定のみで3つのテストを実行
+            const [domBlocked, scriptBlocked, styleBlocked] = await Promise.all([
                 checkDOMFiltering(),
-                checkNetworkBlocking(),
-                checkScriptBlocking()
+                checkScriptTrap(),
+                checkCSSInjection()
             ]);
 
-            const isAdBlockActive = domBlocked || networkBlocked || scriptBlocked;
+            // DOM非表示 または スクリプト阻害 が起きた時のみAdBlock判定とする
+            const isAdBlockActive = domBlocked || scriptBlocked || styleBlocked;
 
-            // 結果表示の更新
             setTimeout(() => {
                 if (isAdBlockActive) {
-                    // ブロッカー検知時
                     statusCard.className = "rounded-2xl p-6 md:p-8 bg-amber-950/40 border border-amber-500/40 shadow-xl shadow-amber-950/20 transition-all duration-300";
                     statusIconContainer.className = "p-5 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30";
                     statusIconContainer.innerHTML = `<i data-lucide="shield-alert" class="w-12 h-12"></i>`;
@@ -337,9 +333,8 @@
                     statusTitle.textContent = "広告ブロッカーが有効です";
                     statusTitle.className = "text-2xl md:text-3xl font-extrabold text-amber-200";
                     
-                    statusDesc.textContent = "ブラウザ拡張機能（AdBlock, uBlock等）またはプライバシー機能によってWeb広告が遮断されています。";
+                    statusDesc.textContent = "ブラウザの拡張機能、または標準のプライバシー保護機能により、広告用要素が自動的に削除・隠蔽されています。";
                 } else {
-                    // ブロッカー非検知時
                     statusCard.className = "rounded-2xl p-6 md:p-8 bg-emerald-950/40 border border-emerald-500/40 shadow-xl shadow-emerald-950/20 transition-all duration-300";
                     statusIconContainer.className = "p-5 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
                     statusIconContainer.innerHTML = `<i data-lucide="shield-check" class="w-12 h-12"></i>`;
@@ -350,19 +345,17 @@
                     statusTitle.textContent = "広告ブロッカーはOFFです";
                     statusTitle.className = "text-2xl md:text-3xl font-extrabold text-emerald-200";
                     
-                    statusDesc.textContent = "広告表示を妨げるブラウザフィルターや拡張機能は検出されませんでした。正常に広告が表示される状態です。";
+                    statusDesc.textContent = "広告要素の隠蔽やスクリプト阻害は検知されませんでした。正常に広告表示が行われる状態です。";
                 }
 
                 lucide.createIcons();
 
-                // ボタンリセット
                 refreshIcon.classList.remove('animate-spin');
                 retestBtn.disabled = false;
                 retestBtn.classList.remove('opacity-70', 'cursor-not-allowed');
             }, 300);
         }
 
-        // ページ読み込み時に検知を自動実行
         window.addEventListener('DOMContentLoaded', () => {
             runDetection();
         });
