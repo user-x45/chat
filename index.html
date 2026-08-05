@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chat Interface</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <!-- Highlight.js for code syntax highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* カスタムスクロールバー */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(107, 114, 128, 0.8);
+        }
+        /* Markdownスタイルの調整 */
+        .prose pre {
+            background-color: #1e293b;
+            color: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose p {
+            margin-bottom: 0.5rem;
+        }
+        .prose p:last-child {
+            margin-bottom: 0;
+        }
+        .prose code {
+            background-color: rgba(110, 118, 129, 0.2);
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 85%;
+        }
+        .prose pre code {
+            background-color: transparent;
+            padding: 0;
+        }
+        .prose ul {
+            list-style-type: disc;
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+        .prose ol {
+            list-style-type: decimal;
+            padding-left: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen flex flex-col transition-colors duration-200">
+
+    <!-- ヘッダー -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 sticky top-0 z-10">
+        <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-500 text-white p-2 rounded-lg flex items-center justify-center w-10 h-10 shadow-sm">
+                    <i class="fa-solid fa-robot text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">AI Chat Assistant</h1>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">Powered by OpenAI-compatible API</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-2">
+                <!-- 設定ボタン -->
+                <button id="settings-btn" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="設定">
+                    <i class="fa-solid fa-gear text-lg"></i>
+                </button>
+                <!-- ダークモード切り替え -->
+                <button id="theme-toggle" class="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="テーマ切り替え">
+                    <i class="fa-solid fa-moon text-lg dark:hidden"></i>
+                    <i class="fa-solid fa-sun text-lg hidden dark:block"></i>
+                </button>
+                <!-- チャットクリア -->
+                <button id="clear-btn" class="p-2 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="履歴をクリア">
+                    <i class="fa-solid fa-trash-can text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- メインコンテンツ -->
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-between overflow-hidden">
+        
+        <!-- チャットメッセージコンテナ -->
+        <div id="chat-container" class="flex-1 overflow-y-auto space-y-4 pb-4 pr-1">
+            <!-- 初期ウェルカムメッセージ -->
+            <div class="flex items-start space-x-3 message-item">
+                <div class="bg-brand-500 text-white p-2 rounded-full flex-shrink-0 w-8 h-8 flex items-center justify-center">
+                    <i class="fa-solid fa-robot text-sm"></i>
+                </div>
+                <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-none p-4 max-w-[85%] shadow-sm prose dark:prose-invert">
+                    <p>こんにちは！どのようなお手伝いができますか？何でもお気軽にお聞きください。</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 入力エリア -->
+        <div class="mt-4 pt-2 border-t border-gray-200 dark:border-gray-800">
+            <form id="chat-form" class="relative flex items-center">
+                <textarea 
+                    id="user-input" 
+                    rows="1" 
+                    placeholder="メッセージを入力してください... (Shift+Enterで改行)" 
+                    class="w-full pl-4 pr-12 py-3 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none overflow-y-auto max-h-32 shadow-sm text-sm md:text-base"
+                    required
+                ></textarea>
+                <button 
+                    type="submit" 
+                    id="send-btn"
+                    class="absolute right-2 p-2 bg-brand-500 hover:bg-brand-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center w-8 h-8 md:w-10 md:h-10"
+                >
+                    <i class="fa-solid fa-paper-plane text-xs md:text-sm"></i>
+                </button>
+            </form>
+            <div class="text-xs text-center text-gray-400 mt-2">
+                API Endpoint: <span class="font-mono">https://gptoss-proxy.user-x45.workers.dev/</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 設定モーダル -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md w-full shadow-xl border border-gray-200 dark:border-gray-700 space-y-4">
+            <div class="flex justify-between items-center border-b pb-3 dark:border-gray-700">
+                <h3 class="font-bold text-lg">設定</h3>
+                <button id="close-modal-btn" class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-sm font-medium mb-1">API エンドポイント URL</label>
+                    <input type="text" id="api-url-input" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono" readonly>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">モデル名</label>
+                    <input type="text" id="model-input" value="gpt-4o" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-1">システムプロンプト (役割設定)</label>
+                    <textarea id="system-prompt-input" rows="3" class="w-full p-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm">You are a helpful and polite AI assistant.</textarea>
+                </div>
+            </div>
+
+            <div class="flex justify-end space-x-2 pt-2">
+                <button id="save-settings-btn" class="px-4 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition text-sm">
+                    保存して閉じる
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 設定項目
+        const DEFAULT_API_URL = 'https://gptoss-proxy.user-x45.workers.dev/v1/chat/completions';
+        let config = {
+            apiUrl: DEFAULT_API_URL,
+            model: 'gpt-4o',
+            systemPrompt: 'You are a helpful and polite AI assistant.'
+        };
+
+        // チャット履歴管理 (ローカルメモリ)
+        let chatHistory = [];
+
+        // DOM要素
+        const chatContainer = document.getElementById('chat-container');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const settingsBtn = document.getElementById('settings-btn');
+        const settingsModal = document.getElementById('settings-modal');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const saveSettingsBtn = document.getElementById('save-settings-btn');
+        const apiUrlInput = document.getElementById('api-url-input');
+        const modelInput = document.getElementById('model-input');
+        const systemPromptInput = document.getElementById('system-prompt-input');
+
+        // 初期化処理
+        window.addEventListener('DOMContentLoaded', () => {
+            apiUrlInput.value = config.apiUrl;
+            modelInput.value = config.model;
+            systemPromptInput.value = config.systemPrompt;
+
+            // テーマの初期設定（システムの優先度を確認）
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.documentElement.classList.add('dark');
+            }
+        });
+
+        // テキストエリアの高さ自動調整
+        userInput.addEventListener('input', () => {
+            userInput.style.height = 'auto';
+            userInput.style.height = (userInput.scrollHeight) + 'px';
+        });
+
+        // Enterキー送信（Shift+Enterで改行）
+        userInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (userInput.value.trim() !== '') {
+                    chatForm.dispatchEvent(new Event('submit'));
+                }
+            }
+        });
+
+        // ダークモード切り替え
+        themeToggle.addEventListener('click', () => {
+            document.documentElement.classList.toggle('dark');
+        });
+
+        // 設定モーダルの開閉
+        settingsBtn.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+            settingsModal.classList.add('flex');
+        });
+
+        closeModalBtn.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
+        });
+
+        saveSettingsBtn.addEventListener('click', () => {
+            config.model = modelInput.value.trim() || 'gpt-4o';
+            config.systemPrompt = systemPromptInput.value.trim();
+            settingsModal.classList.add('hidden');
+            settingsModal.classList.remove('flex');
+        });
+
+        // チャット履歴のクリア
+        clearBtn.addEventListener('click', () => {
+            chatHistory = [];
+            chatContainer.innerHTML = `
+                <div class="flex items-start space-x-3 message-item">
+                    <div class="bg-brand-500 text-white p-2 rounded-full flex-shrink-0 w-8 h-8 flex items-center justify-center">
+                        <i class="fa-solid fa-robot text-sm"></i>
+                    </div>
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-none p-4 max-w-[85%] shadow-sm prose dark:prose-invert">
+                        <p>チャット履歴がクリアされました。新しい会話を始めましょう！</p>
+                    </div>
+                </div>
+            `;
+        });
+
+        // メッセージ描画ヘルパー
+        function appendMessage(role, content) {
+            const isUser = role === 'user';
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = `flex items-start space-x-3 message-item ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`;
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = isUser 
+                ? 'bg-gray-600 text-white p-2 rounded-full flex-shrink-0 w-8 h-8 flex items-center justify-center'
+                : 'bg-brand-500 text-white p-2 rounded-full flex-shrink-0 w-8 h-8 flex items-center justify-center';
+            iconDiv.innerHTML = isUser ? '<i class="fa-solid fa-user text-sm"></i>' : '<i class="fa-solid fa-robot text-sm"></i>';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = isUser
+                ? 'bg-brand-500 text-white rounded-2xl rounded-tr-none p-4 max-w-[85%] shadow-sm text-sm md:text-base'
+                : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-none p-4 max-w-[85%] shadow-sm prose dark:prose-invert text-sm md:text-base';
+
+            if (isUser) {
+                contentDiv.textContent = content;
+            } else {
+                contentDiv.innerHTML = marked.parse(content);
+                // コードブロックのハイライト適用
+                contentDiv.querySelectorAll('pre code').forEach((block) => {
+                    hljs.highlightElement(block);
+                });
+            }
+
+            wrapperDiv.appendChild(iconDiv);
+            wrapperDiv.appendChild(contentDiv);
+            chatContainer.appendChild(wrapperDiv);
+
+            // スクロールを一番下へ
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return contentDiv;
+        }
+
+        // ローディングインジケータ作成
+        function createLoadingIndicator() {
+            const wrapperDiv = document.createElement('div');
+            wrapperDiv.className = 'flex items-start space-x-3 message-item id-loading';
+
+            const iconDiv = document.createElement('div');
+            iconDiv.className = 'bg-brand-500 text-white p-2 rounded-full flex-shrink-0 w-8 h-8 flex items-center justify-center';
+            iconDiv.innerHTML = '<i class="fa-solid fa-robot text-sm"></i>';
+
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl rounded-tl-none p-4 shadow-sm flex items-center space-x-2';
+            contentDiv.innerHTML = `
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms;"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms;"></div>
+                <div class="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms;"></div>
+            `;
+
+            wrapperDiv.appendChild(iconDiv);
+            wrapperDiv.appendChild(contentDiv);
+            chatContainer.appendChild(wrapperDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            return wrapperDiv;
+        }
+
+        // フォーム送信（APIリクエスト）
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = userInput.value.trim();
+            if (!text) return;
+
+            // 入力欄リセット
+            userInput.value = '';
+            userInput.style.height = 'auto';
+            sendBtn.disabled = true;
+
+            // ユーザーメッセージの追加
+            appendMessage('user', text);
+            chatHistory.push({ role: 'user', content: text });
+
+            // ローディング表示
+            const loadingIndicator = createLoadingIndicator();
+
+            // リクエストペイロード構築
+            const messagesPayload = [
+                { role: 'system', content: config.systemPrompt },
+                ...chatHistory
+            ];
+
+            // リトライ付きAPI呼び出し
+            let attempt = 0;
+            const maxRetries = 5;
+            let responseData = null;
+            let success = false;
+
+            while (attempt < maxRetries && !success) {
+                try {
+                    const response = await fetch(config.apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            model: config.model,
+                            messages: messagesPayload,
+                            stream: false
+                        })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP Error: ${response.status}`);
+                    }
+
+                    responseData = await response.json();
+                    success = true;
+                } catch (err) {
+                    attempt++;
+                    if (attempt >= maxRetries) {
+                        console.error('API Call failed after retries:', err);
+                    } else {
+                        // 指数バックオフ (1s, 2s, 4s, 8s, 16s)
+                        const delay = Math.pow(2, attempt - 1) * 1000;
+                        await new Promise(res => setTimeout(res, delay));
+                    }
+                }
+            }
+
+            // ローディング消去
+            loadingIndicator.remove();
+            sendBtn.disabled = false;
+
+            if (success && responseData && responseData.choices && responseData.choices[0]) {
+                const aiReply = responseData.choices[0].message.content;
+                appendMessage('assistant', aiReply);
+                chatHistory.push({ role: 'assistant', content: aiReply });
+            } else {
+                // エラーメッセージの表示
+                const errorMsg = '申し訳ありません。APIリクエストの処理中にエラーが発生しました。時間を置いて再度お試しください。';
+                appendMessage('assistant', `⚠️ **エラー**\n\n${errorMsg}`);
+            }
+        });
+    </script>
+</body>
+</html>
