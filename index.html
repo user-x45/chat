@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>広告ブロッカー検知</title>
+<title>広告ブロッカー検知 v2</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -30,47 +30,51 @@
     background: var(--card);
     border-radius: 16px;
     padding: 32px;
-    max-width: 420px;
+    max-width: 480px;
     width: 100%;
     box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-    text-align: center;
   }
-  h1 {
-    font-size: 1.4rem;
-    margin-bottom: 8px;
-  }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; text-align: center; }
   p.desc {
     color: var(--muted);
-    font-size: 0.9rem;
-    margin-bottom: 24px;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+    text-align: center;
   }
   .status {
     border-radius: 12px;
-    padding: 20px;
+    padding: 18px;
     margin-bottom: 20px;
     font-weight: bold;
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    text-align: center;
     transition: all 0.3s ease;
   }
-  .status.loading {
-    background: rgba(148,163,184,0.15);
-    color: var(--muted);
+  .status.loading { background: rgba(148,163,184,0.15); color: var(--muted); }
+  .status.detected { background: rgba(248,113,113,0.15); color: var(--danger); border: 1px solid var(--danger); }
+  .status.clear { background: rgba(74,222,128,0.15); color: var(--safe); border: 1px solid var(--safe); }
+  .icon { font-size: 2rem; display: block; margin-bottom: 6px; }
+
+  .checklist { list-style: none; padding: 0; margin: 0 0 20px 0; }
+  .checklist li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(148,163,184,0.15);
+    font-size: 0.85rem;
   }
-  .status.detected {
-    background: rgba(248,113,113,0.15);
-    color: var(--danger);
-    border: 1px solid var(--danger);
+  .checklist li:last-child { border-bottom: none; }
+  .badge {
+    font-size: 0.75rem;
+    font-weight: bold;
+    padding: 3px 10px;
+    border-radius: 999px;
   }
-  .status.clear {
-    background: rgba(74,222,128,0.15);
-    color: var(--safe);
-    border: 1px solid var(--safe);
-  }
-  .icon {
-    font-size: 2.2rem;
-    display: block;
-    margin-bottom: 8px;
-  }
+  .badge.pending { background: rgba(148,163,184,0.2); color: var(--muted); }
+  .badge.blocked { background: rgba(248,113,113,0.2); color: var(--danger); }
+  .badge.allowed { background: rgba(74,222,128,0.2); color: var(--safe); }
+
   button {
     background: var(--accent);
     color: #0f172a;
@@ -80,112 +84,172 @@
     font-weight: bold;
     font-size: 0.95rem;
     cursor: pointer;
+    width: 100%;
     transition: opacity 0.2s;
   }
   button:hover { opacity: 0.85; }
-  .footer {
-    margin-top: 20px;
-    font-size: 0.75rem;
-    color: var(--muted);
-  }
+  .footer { margin-top: 16px; font-size: 0.72rem; color: var(--muted); text-align: center; line-height: 1.6; }
 </style>
 </head>
 <body>
   <div class="card">
-    <h1>🛡️ 広告ブロッカー検知</h1>
-    <p class="desc">複数の手法を組み合わせて、ブラウザで広告ブロッカーが有効かどうかを判定します。</p>
+    <h1>🛡️ 広告ブロッカー検知 v2</h1>
+    <p class="desc">MV3型拡張機能(uBlock Origin Liteなど)にも対応した多層検知</p>
 
     <div id="status" class="status loading">
-      <span class="icon">⏳</span>
-      検査中...
+      <span class="icon">⏳</span>検査中...
     </div>
+
+    <ul class="checklist" id="checklist">
+      <li>CSSコスメティックフィルタ <span class="badge pending" id="b-cosmetic">待機中</span></li>
+      <li>広告用bait画像の読み込み <span class="badge pending" id="b-image">待機中</span></li>
+      <li>既知広告スクリプトの読込 <span class="badge pending" id="b-script">待機中</span></li>
+      <li>ネットワークリクエスト遮断 <span class="badge pending" id="b-network">待機中</span></li>
+    </ul>
 
     <button onclick="runDetection()">再検査する</button>
 
     <div class="footer">
-      ダミー広告要素 / フェッチブロック / スクリプトブロックの3つの方法で判定しています。
+      MV3ベースの拡張機能はネットワークリクエストをブラウザ内部で静かに遮断するため、
+      CSS非表示・画像読み込み・スクリプト読み込みの複数シグナルを組み合わせて判定しています。
     </div>
   </div>
 
-  <!-- 広告ブロッカーが反応しやすいクラス名のダミー要素 -->
-  <div class="ads ad-banner adsbox advertisement" style="position:absolute; left:-9999px; width:1px; height:1px;"></div>
-
   <script>
-    async function checkBaitElement() {
-      const bait = document.createElement('div');
-      bait.className = 'ads ad-banner adsbox pub_300x250 pub_300x250m banner-ads ad-placement carbon-ads';
-      bait.style.cssText = 'position:absolute; top:-9999px; left:-9999px; width:1px; height:1px;';
-      document.body.appendChild(bait);
-      // レイアウト確定を待つ
-      await new Promise(r => setTimeout(r, 100));
-      const blocked = bait.offsetHeight === 0 ||
-                       bait.offsetParent === null ||
-                       getComputedStyle(bait).display === 'none' ||
-                       getComputedStyle(bait).visibility === 'hidden';
-      document.body.removeChild(bait);
-      return blocked;
+    function setBadge(id, state, label) {
+      const el = document.getElementById(id);
+      el.className = 'badge ' + state;
+      el.textContent = label;
     }
 
-    async function checkFetchBlock() {
-      const testUrls = [
-        'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
-        'https://googleads.g.doubleclick.net/pagead/id'
+    // 1. CSSコスメティックフィルタ検知: uBOがよく隠す典型クラス名を大量に試す
+    async function checkCosmetic() {
+      const classNames = [
+        'adsbygoogle', 'ad-banner', 'ads-container', 'ad_unit', 'advertisement',
+        'text-ad', 'sponsored-post', 'google-ad', 'banner-ad', 'ad-slot',
+        'pub_300x250', 'sidebar-ads', 'ad-wrapper', 'adsbox'
       ];
-      for (const url of testUrls) {
-        try {
-          await fetch(url, { method: 'HEAD', mode: 'no-cors', cache: 'no-store' });
-          return false; // 成功したらブロックされていない
-        } catch (e) {
-          // このURLは失敗、次を試す
+      const container = document.createElement('div');
+      container.style.cssText = 'position:absolute; top:-9999px; left:-9999px;';
+      let hiddenCount = 0;
+
+      const elements = classNames.map(cls => {
+        const el = document.createElement('div');
+        el.className = cls;
+        el.style.cssText = 'width:300px; height:250px;';
+        el.textContent = '.';
+        container.appendChild(el);
+        return el;
+      });
+      document.body.appendChild(container);
+
+      await new Promise(r => setTimeout(r, 150));
+
+      for (const el of elements) {
+        const cs = getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' ||
+            el.offsetHeight === 0 || el.offsetParent === null) {
+          hiddenCount++;
         }
       }
-      return true; // 全て失敗＝ブロックされている可能性が高い
+      document.body.removeChild(container);
+      return hiddenCount; // 隠された数を返す
     }
 
-    async function checkScriptBlock() {
+    // 2. bait画像: 広告配信ドメインの実画像URL(1x1やロゴ等)を読み込ませる
+    function checkImage() {
+      return new Promise((resolve) => {
+        const img = new Image();
+        let done = false;
+        const timer = setTimeout(() => {
+          if (!done) { done = true; resolve(true); } // タイムアウト=ブロックとみなす
+        }, 2000);
+        img.onload = () => {
+          if (!done) { done = true; clearTimeout(timer); resolve(false); }
+        };
+        img.onerror = () => {
+          if (!done) { done = true; clearTimeout(timer); resolve(true); }
+        };
+        // Googleの広告配信画像(既知のEasyList収録パス)
+        img.src = 'https://pagead2.googlesyndication.com/pagead/gen_204?id=itest&' + Date.now();
+      });
+    }
+
+    // 3. 既知広告スクリプトの読込テスト
+    function checkScript() {
       return new Promise((resolve) => {
         const script = document.createElement('script');
-        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
-        let resolved = false;
+        script.src = 'https://www.googletagservices.com/tag/js/gpt.js?' + Date.now();
+        let done = false;
         const timer = setTimeout(() => {
-          if (!resolved) { resolved = true; resolve(true); }
-        }, 1500);
+          if (!done) { done = true; resolve(true); }
+        }, 2000);
         script.onload = () => {
-          if (!resolved) { resolved = true; clearTimeout(timer); resolve(false); }
+          if (!done) { done = true; clearTimeout(timer); resolve(false); }
         };
         script.onerror = () => {
-          if (!resolved) { resolved = true; clearTimeout(timer); resolve(true); }
+          if (!done) { done = true; clearTimeout(timer); resolve(true); }
         };
         document.body.appendChild(script);
       });
+    }
+
+    // 4. fetchでの複数の既知広告/トラッキングURLへのアクセス試行
+    async function checkNetwork() {
+      const testUrls = [
+        'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
+        'https://www.googletagservices.com/tag/js/gpt.js',
+        'https://securepubads.g.doubleclick.net/tag/js/gpt.js'
+      ];
+      let blockedCount = 0;
+      for (const url of testUrls) {
+        try {
+          const controller = new AbortController();
+          const t = setTimeout(() => controller.abort(), 1500);
+          await fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store', signal: controller.signal });
+          clearTimeout(t);
+          // no-corsは成功しても中身は見えないが、例外が出ずに解決すればネットワーク到達はできている
+        } catch (e) {
+          blockedCount++;
+        }
+      }
+      return blockedCount; // 3件中いくつ失敗したか
     }
 
     async function runDetection() {
       const statusEl = document.getElementById('status');
       statusEl.className = 'status loading';
       statusEl.innerHTML = '<span class="icon">⏳</span>検査中...';
+      ['b-cosmetic','b-image','b-script','b-network'].forEach(id => setBadge(id, 'pending', '検査中'));
 
-      const [baitBlocked, fetchBlocked, scriptBlocked] = await Promise.all([
-        checkBaitElement(),
-        checkFetchBlock(),
-        checkScriptBlock()
+      const [cosmeticHidden, imageBlocked, scriptBlocked, networkBlockedCount] = await Promise.all([
+        checkCosmetic(),
+        checkImage(),
+        checkScript(),
+        checkNetwork()
       ]);
 
-      const score = [baitBlocked, fetchBlocked, scriptBlocked].filter(Boolean).length;
-      const detected = score >= 1;
+      setBadge('b-cosmetic', cosmeticHidden > 0 ? 'blocked' : 'allowed',
+        cosmeticHidden > 0 ? `${cosmeticHidden}件 非表示` : '検出なし');
+      setBadge('b-image', imageBlocked ? 'blocked' : 'allowed', imageBlocked ? 'ブロック' : '読込成功');
+      setBadge('b-script', scriptBlocked ? 'blocked' : 'allowed', scriptBlocked ? 'ブロック' : '読込成功');
+      setBadge('b-network', networkBlockedCount > 0 ? 'blocked' : 'allowed',
+        networkBlockedCount > 0 ? `${networkBlockedCount}/3 失敗` : '全て到達');
 
-      if (detected) {
-        statusEl.className = 'status detected';
-        statusEl.innerHTML = `<span class="icon">🚫</span>広告ブロッカーを検知しました<br><span style="font-weight:normal;font-size:0.8rem;color:var(--muted)">判定根拠: ${score}/3 の手法で検出</span>`;
+      const score = (cosmeticHidden > 0 ? 1 : 0) + (imageBlocked ? 1 : 0) +
+                    (scriptBlocked ? 1 : 0) + (networkBlockedCount > 0 ? 1 : 0);
+
+      const statusEl2 = document.getElementById('status');
+      if (score >= 1) {
+        statusEl2.className = 'status detected';
+        statusEl2.innerHTML = `<span class="icon">🚫</span>広告ブロッカーを検知しました<br><span style="font-weight:normal;font-size:0.78rem;color:var(--muted)">4手法中 ${score} 件でブロックを検出</span>`;
       } else {
-        statusEl.className = 'status clear';
-        statusEl.innerHTML = '<span class="icon">✅</span>広告ブロッカーは検知されませんでした';
+        statusEl2.className = 'status clear';
+        statusEl2.innerHTML = '<span class="icon">✅</span>広告ブロッカーは検知されませんでした';
       }
     }
 
-    window.addEventListener('load', () => {
-      setTimeout(runDetection, 300);
-    });
+    window.addEventListener('load', () => setTimeout(runDetection, 300));
   </script>
 </body>
 </html>
